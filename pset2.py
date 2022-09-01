@@ -16,13 +16,15 @@ class Image:
         self.pixels = pixels
 
     def get_pixel(self, x, y):
+        # Os seguintes if-else são o chamado efeito de borda, eles verificam se o kernel esta tentando pegar um pixel fora dos limites da imagem 
+        # e devolvem um valor ao kernel para esses pixeis inexistentes
         if x < 0: # borda esquerda
             x = 0
-        elif x >= self.width - 1: # borda direita
+        elif x >= self.width: # borda direita
             x = self.width - 1
         if y < 0: # borda em cima
             y = 0
-        elif y >= self.height - 1: # borda em baixo
+        elif y >= self.height: # borda em baixo
             y = self.height - 1
         return self.pixels[(x + y * self.width)] # pixels[] pede o valor do indice do pixel na lista que forma a imagem, não as coordenadas do pixel.
                                                  # a formula x + y * self.width serve para calcular o indice do pixel sendo observado.
@@ -41,21 +43,27 @@ class Image:
             for y in range(result.height):
                 color = self.get_pixel(x, y)
                 newcolor = func(color)
-                result.set_pixel(x, y, newcolor) # x e y estavam invertidos e o result estava na 
+                result.set_pixel(x, y, newcolor) # x e y estavam invertidos e o result estava fora do for
         return result
 
     def correlacao(self, kernel):
-        n = len(kernel)
+        n = len(kernel) # variavel n criada pra guardar o valor do tamanho do array do kernel
+        meio = n//2
         result = Image.new(self.width, self.height)
-        for x in range(result.width):
-            for y in range(result.height):
-                newcolor = 0
+        for x in range(result.width):           
+            for y in range(result.height):    # juntos os for x e for y verificam cada pixel da imagem
+                newcolor = 0                  # newcolor (nome referente ao usado na função apply_per_pixel) guarda o valor gerado pelo kernel 
                 for i in range(n):
-                    for j in range(n):
-                        newcolor += self.get_pixel((x-(n//2)+j), (y-(n//2)+i)) * kernel[i][j] # exemplo  imagem(3, 3 [10, 12, 10], | kernel(3, 3[0, 0, 0],
-                result.set_pixel(x, y, newcolor)                                              #                      [12, 20, 12], |            [1, 0, 0],
-        return result                                                                         #                      [10, 12, 10]) |            [0, 0, 0])
-
+                    for j in range(n):        # garante que a função passe por cada valor do kernel
+                        newcolor += self.get_pixel((x-meio+j), (y-meio+i)) * kernel[i][j] # newcolor += usado pois o valor final do kernel aplicado a imagem é a soma de todos os valores do kernel x os pixeis da imagem
+                result.set_pixel(x, y, newcolor)                                              # n//2 encontra o valor do raio do kernel
+        result.acertar()                                                                      # x-/y- serve pra encontrar o pixel fora do centro que sera multiplicado pelo valor de mesma posição no kernel
+        return result                                                                         # x-(n//2) e y-(n//2) serve para ver o primeiro pixel da imagem no kernel ((-1, -1) no caso de um kernel 3x3 no pixel (0, 0)
+                                                                                              # +j/+i servem para, respectivamente, encontrar o pixel a direita/abaixo do primeiro
+                                                                                              # x-(n//2)+j e y-(n//2)+i, kernel 3x3 no pixel (0, 0): 0-(3//2)+0 e 0-(3//2)+0 = (-1, -1)
+                                                                                              #                                                    : 0-(3//2)+1 e 0-(3//2)+0 = (0, -1)
+                                                                                              #                                                    : 0-(3//2)+2 e 0-(3//2)+0 = (1, -1)
+                                                                                              #                                                    : 0-(3//2)+0 e 0-(3//2)+1 = (-1, 0)...
     def inverted(self):
         return self.apply_per_pixel(lambda c: 255-c)
 
@@ -221,13 +229,39 @@ if __name__ == '__main__':
     # and not when the tests are being run.  this is a good place for
     # generating images, etc.
     pass
-    kernel = [[0, 1, 0],[1, -4, 1],[0, 1, 0]]
-    i = Image.load('test_images/python.png')
-    correla = i.correlacao(kernel)
-    correla.acertar()
+    bordas = [[-1, -1, -1],
+              [-1, 8, -1],
+              [-1, -1, -1]]
+    borda2 = [[2, 1, 0],
+              [1, 0,-1],
+              [0,-1,-2]]
+    Kx = [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1],]
+    Ky = [[-1, -2, -1],[0, 0, 0],[1, 2, 1],]
+    Kxy = [[-2, -2, 0],[-2, 0, 2],[0, 2, 2],]
+    borrar = [[1/9,1/9,1/9],[1/9,1/9,1/9],[1/9,1/9,1/9]]
 
-    correla.show()
-    
+    i = Image.load('test_images/cherry.png')
+    b = i.correlacao(borrar)
+    bb = b.correlacao(borrar)
+    ikx = bb.correlacao(Kx)
+    iky = bb.correlacao(Ky)
+    ikxy = ikx.correlacao(Ky)
+    ikyx = iky.correlacao(Kx)
+    ikx.show()
+    iky.show()
+    ikxy.show()
+    ikyx.show()
+
+    # correla = i.correlacao(bordas)
+    # i.show()
+    # correla.show()
+
+    # Kernel para resolver a questão 4
+    # kernelq4 = [[0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [1,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0]]
+    # i = Image.load('test_images/pigbird.png')
+    # ic = i.correlacao(kernelq4)
+    # ic.show()
+    # i.show()
     
     
 
