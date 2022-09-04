@@ -55,3 +55,24 @@ Resultado:
 
 ---
 **Questão 5:** se quisermos usar uma versão desfocada B que foi feita com um kernel de desfoque de caixa de 3 × 3, que kernel k poderíamos usar para calcular toda a imagem nítida com uma única correlação?  
+Resultado: kernel = [[-1/9, -1/9, -1/9],[-1/9, 17/9, -1/9],[-1/9, -1/9, -1/9]]  
+Justificativa: Seguindo a formula ![image](https://user-images.githubusercontent.com/89659834/188337930-22ccb721-ccd6-497c-b1b5-f3240e311e85.png)  
+é possivel calcular o kernel acima com os seguintes passos:  
+2*I = um kernel 3x3 composto apenas de 0 nas bordas e 2 no meio, assim dobramos o valor de cada pixel da imagem  
+B é um kernel 3x3 com 1/9 em todas as posições
+O kernel único para aumentar a nitidez da imagem então será um kernel 3x3 formado da subtração dos dois acima, resultando em um kernel formado de 0 - 1/9 (-1/9) nas bordas e 2 - 1/9 (17/9) no centro.  
+  
+Imagem gerada com a função blurred (máscara de não nitidez):  
+![pythonsharpened](https://user-images.githubusercontent.com/89659834/188338124-3ef86cab-b166-4c8d-9e4e-26c13a508fc4.png)  
+
+---
+**Questão 6:** Explique o que cada um dos kernels acima, por si só, está fazendo:  
+![image](https://user-images.githubusercontent.com/89659834/188338346-416b34c5-ce06-4d5e-9cde-0fdcb88cecc9.png)  
+O Kx retorna a detectação de bordas horizontal, enquanto o Ky retorna a detecção de bordas vertical  
+Kx: ![ikx](https://user-images.githubusercontent.com/89659834/188338287-43c9d1df-62b0-4e37-9fda-1317952771e9.png)  
+Ky: ![iky](https://user-images.githubusercontent.com/89659834/188338291-0c362bb1-435c-41b7-a306-7d215f196313.png)
+  
+Imagem obra após passar pelo filtro de bordas:  
+![constructedges](https://user-images.githubusercontent.com/89659834/188338323-349465ac-c15b-443e-ab53-dc41580307c3.png)
+  
+---  
