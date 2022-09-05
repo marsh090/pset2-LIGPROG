@@ -34,9 +34,11 @@ class Image:
                                                  #                               10 + 0 * 11 = 10
                                                  #                               0 + 1 * 11 = 11
 
+    # Muda a cor do pixel de uma imagem para a cor expecificada
     def set_pixel(self, x, y, c):
         self.pixels[(x + y * self.width)] = c 
 
+    # Aplica uma função em cada pixel de uma imagem
     def apply_per_pixel(self, func):
         result = Image.new(self.width, self.height)
         for x in range(result.width):
@@ -46,63 +48,66 @@ class Image:
                 result.set_pixel(x, y, newcolor) # x e y estavam invertidos e o result estava fora do for
         return result
 
+    # Aplica um kernel em cada pixel de uma imagem
     def correlacao(self, kernel):
         n = len(kernel)                                                                       # variavel n criada pra guardar o valor do tamanho do array do kernel
-        meio = n//2
+        raio = n//2                                                                           # variavel raio guarda o raio do kernel, calculado com n//2
         result = Image.new(self.width, self.height)
         for x in range(result.width):           
             for y in range(result.height):                                                    # juntos os for x e for y verificam cada pixel da imagem
-                newcolor = 0                                                                  # newcolor (nome referente ao usado na função apply_per_pixel) guarda o valor gerado pelo kernel 
+                newcolor = 0                                                                  # newcolor instanciado como 0 para reiniciar a variavel para cada pixel da imagem
                 for i in range(n):
-                    for j in range(n):                                                        # garante que a função passe por cada valor do kernel
-                        newcolor += self.get_pixel((x-meio+j), (y-meio+i)) * kernel[i][j]     # newcolor += usado pois o valor final do kernel aplicado a imagem é a soma de todos os valores do kernel x os pixeis da imagem
-                result.set_pixel(x, y, newcolor)                                              # n//2 encontra o valor do raio do kernel
+                    for j in range(n):                                                        # garante que cada valor do kernel seja multiplicado pelo pixel certo na imagem original
+                        newcolor += self.get_pixel((x-raio+j), (y-raio+i)) * kernel[i][j]     # newcolor += usado pois o valor final do kernel aplicado a imagem é a soma de todos os valores do kernel * os pixeis da imagem
+                result.set_pixel(x, y, newcolor)                                              
         return result                                                                         # x-/y- serve pra encontrar o pixel fora do centro que sera multiplicado pelo valor de mesma posição no kernel
-                                                                                              # x-(n//2) e y-(n//2) serve para ver o primeiro pixel da imagem no kernel ((-1, -1) no caso de um kernel 3x3 no pixel (0, 0)
+                                                                                              # x-(n//2) e y-(n//2) serve para ver o primeiro pixel da imagem no kernel ((-1, -1) no caso de um kernel 3x3 no pixel (0, 0))
                                                                                               # +j/+i servem para, respectivamente, encontrar o pixel a direita/abaixo do primeiro
                                                                                               # x-(n//2)+j e y-(n//2)+i, kernel 3x3 no pixel (0, 0): 0-(3//2)+0 e 0-(3//2)+0 = (-1, -1)
                                                                                               #                                                    : 0-(3//2)+1 e 0-(3//2)+0 = (0, -1)
                                                                                               #                                                    : 0-(3//2)+2 e 0-(3//2)+0 = (1, -1)
                                                                                               #                                                    : 0-(3//2)+0 e 0-(3//2)+1 = (-1, 0)...
 
+    # Inverte os valores dos pixels
     def inverted(self):
         return self.apply_per_pixel(lambda c: 255-c)
 
-    def blurred(self, n):
-        blur = self.correlacao(blur_kernel_generator(n))
-        blur.acertar()
+    # Borra a imagem utilizando um kernel gerado pela função blur_kernel_generator(n)
+    def blurred(self, n): # n é o valor de intensidade do filtro borrar, passado pelo usuario ele define o tamanho do kernel gerado
+        blur = self.correlacao(blur_kernel_generator(n)) # blur salva a imagem gerada pela correlacao utilizando o kernel gerado por blur_kernel_generator(n)
+        blur.acertar() # Acerta o valor dos pixels para deixar todos entre [0, 255] e com valor inteiro
         return blur
 
+    # Filtro de nitidez, tambem conhecido como unsharp mask, torna a imagem mais nitida
     def sharpened(self, n):
-        blur = self.blurred(n)
-        result = Image.new(self.width, self.height)
+        blur = self.blurred(n) # cria uma versão borrada da imagem
+        result = Image.new(self.width, self.height) # cria uma nova imagem com dimensões iguais a da original
         for x in range(self.width):
             for y in range(self.height):
-                colornew = round(2 * self.get_pixel(x, y) - blur.get_pixel(x, y))
-                result.set_pixel(x, y, colornew)
-        result.acertar()
+                colornew = round(2 * self.get_pixel(x, y) - blur.get_pixel(x, y)) # gera o novo valor de cada pixel utilizando a formula dada no pset (2*I(x, y) - B(x, y))
+                result.set_pixel(x, y, colornew) # seta a nova cor de cada pixel na imagem criada
+        result.acertar() # acerta o valor de cada pixel
         return result
 
+    # Filtro de detecção de bordas
     def edges(self):
+        # Kx e Ky são os kernels utilizados para gerar a imagem com filtro de detecção de bordas
         kx = [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]]
         ky = [[-1, -2, -1],[0, 0, 0],[1, 2, 1]]
-        imgkx = self.correlacao(kx)
-        imgky = self.correlacao(ky)
-        result = Image.new(self.width, self.height)
+        imgkx = self.correlacao(kx) # salva a imagem com as bordas horizontais(Kx)
+        imgky = self.correlacao(ky) # salva a imagem com as bordas verticais(Ky)
+        result = Image.new(self.width, self.height) # cria nova imagem com dimensões iguais as da original
         for x in range(self.width):
             for y in range(self.height):
-                colornew = round(math.sqrt(imgkx.get_pixel(x, y)**2 + imgky.get_pixel(x, y)**2))
-                result.set_pixel(x, y, colornew)
-        result.acertar()
+                colornew = round(math.sqrt(imgkx.get_pixel(x, y)**2 + imgky.get_pixel(x, y)**2)) # Calcula nova cor dos pixels com base na formula dada no pset (raiz quadrada da soma do quadrado de cada pixel de Kx e Ky)
+                result.set_pixel(x, y, colornew) # seta a nova cor de cada pixel
+        result.acertar() # acerta os valores dos pixels
         return result
 
-    def darken(self):
-        result = self.apply_per_pixel(lambda c: c * 0.5)
-        result.acertar()
-        return result
-
-    def brighten(self):
-        result = self.apply_per_pixel(lambda c: c * 2 + 1)
+    # Função propria, fora do pset.
+    # Escurece ou aumenta o brilho da imagem dependendo de n (entre [0 e 1[ escurece e acima de 1 aumenta o brilho)
+    def dark_bright(self, n):
+        result = self.apply_per_pixel(lambda c: c * n + n)
         result.acertar()
         return result
 
@@ -256,7 +261,7 @@ if __name__ == '__main__':
     # Q2
     #i = Image.load('test_images/bluegill.png')
     #inv = i.inverted()
-    #inv.save('test_results/peixe.png')
+    #inv.save('test_results/peixe.png') salva a imagem peixe invertida
 
     # Q4
     # kernelq4 = [[0, 0, 0, 0, 0, 0, 0, 0, 0], 
@@ -310,8 +315,12 @@ if __name__ == '__main__':
     # iky.show()
     # O Kx retorna a detectação de bordas horizontal e o Ky retorna a detecção de bordas vertical
 
+    i = Image.load('test_images/cherry.png')
+    dark = i.dark_bright(0.6)
+    bright = i.dark_bright(2)
+    bright.show()
+    dark.show()
 
-    # iv.save('test_results/peixe_invertido.png') salva a imagem peixe invertida
 
     # the following code will cause windows from Image.show to be displayed
     # properly, whether we're running interactively or not:
