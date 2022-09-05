@@ -315,11 +315,11 @@ if __name__ == '__main__':
     # iky.show()
     # O Kx retorna a detectação de bordas horizontal e o Ky retorna a detecção de bordas vertical
 
-    i = Image.load('test_images/cherry.png')
-    dark = i.dark_bright(0.6)
-    bright = i.dark_bright(2)
-    bright.show()
-    dark.show()
+    # i = Image.load('test_images/cherry.png')
+    # dark = i.dark_bright(0.6)
+    # bright = i.dark_bright(2)
+    # bright.show()
+    # dark.show()
 
 
     # the following code will cause windows from Image.show to be displayed
