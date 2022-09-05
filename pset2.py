@@ -1,4 +1,5 @@
 from random import randint, random
+from statistics import correlation
 import sys
 import math
 import base64
@@ -7,7 +8,6 @@ import tkinter
 from io import BytesIO
 from turtle import width
 from PIL import Image as PILImage
-
 
 class Image:
     def __init__(self, width, height, pixels):
@@ -47,34 +47,54 @@ class Image:
         return result
 
     def correlacao(self, kernel):
-        n = len(kernel) # variavel n criada pra guardar o valor do tamanho do array do kernel
+        n = len(kernel)                                                                       # variavel n criada pra guardar o valor do tamanho do array do kernel
         meio = n//2
         result = Image.new(self.width, self.height)
         for x in range(result.width):           
-            for y in range(result.height):    # juntos os for x e for y verificam cada pixel da imagem
-                newcolor = 0                  # newcolor (nome referente ao usado na função apply_per_pixel) guarda o valor gerado pelo kernel 
+            for y in range(result.height):                                                    # juntos os for x e for y verificam cada pixel da imagem
+                newcolor = 0                                                                  # newcolor (nome referente ao usado na função apply_per_pixel) guarda o valor gerado pelo kernel 
                 for i in range(n):
-                    for j in range(n):        # garante que a função passe por cada valor do kernel
-                        newcolor += self.get_pixel((x-meio+j), (y-meio+i)) * kernel[i][j] # newcolor += usado pois o valor final do kernel aplicado a imagem é a soma de todos os valores do kernel x os pixeis da imagem
+                    for j in range(n):                                                        # garante que a função passe por cada valor do kernel
+                        newcolor += self.get_pixel((x-meio+j), (y-meio+i)) * kernel[i][j]     # newcolor += usado pois o valor final do kernel aplicado a imagem é a soma de todos os valores do kernel x os pixeis da imagem
                 result.set_pixel(x, y, newcolor)                                              # n//2 encontra o valor do raio do kernel
-        result.acertar()                                                                      # x-/y- serve pra encontrar o pixel fora do centro que sera multiplicado pelo valor de mesma posição no kernel
-        return result                                                                         # x-(n//2) e y-(n//2) serve para ver o primeiro pixel da imagem no kernel ((-1, -1) no caso de um kernel 3x3 no pixel (0, 0)
+        return result                                                                         # x-/y- serve pra encontrar o pixel fora do centro que sera multiplicado pelo valor de mesma posição no kernel
+                                                                                              # x-(n//2) e y-(n//2) serve para ver o primeiro pixel da imagem no kernel ((-1, -1) no caso de um kernel 3x3 no pixel (0, 0)
                                                                                               # +j/+i servem para, respectivamente, encontrar o pixel a direita/abaixo do primeiro
                                                                                               # x-(n//2)+j e y-(n//2)+i, kernel 3x3 no pixel (0, 0): 0-(3//2)+0 e 0-(3//2)+0 = (-1, -1)
                                                                                               #                                                    : 0-(3//2)+1 e 0-(3//2)+0 = (0, -1)
                                                                                               #                                                    : 0-(3//2)+2 e 0-(3//2)+0 = (1, -1)
                                                                                               #                                                    : 0-(3//2)+0 e 0-(3//2)+1 = (-1, 0)...
+
     def inverted(self):
         return self.apply_per_pixel(lambda c: 255-c)
 
     def blurred(self, n):
-        raise NotImplementedError
+        blur = self.correlacao(blur_kernel_generator(n))
+        blur.acertar()
+        return blur
 
     def sharpened(self, n):
-        raise NotImplementedError
+        blur = self.blurred(n)
+        result = Image.new(self.width, self.height)
+        for x in range(self.width):
+            for y in range(self.height):
+                colornew = round(2 * self.get_pixel(x, y) - blur.get_pixel(x, y))
+                result.set_pixel(x, y, colornew)
+        result.acertar()
+        return result
 
     def edges(self):
-        raise NotImplementedError
+        kx = [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]]
+        ky = [[-1, -2, -1],[0, 0, 0],[1, 2, 1]]
+        imgkx = self.correlacao(kx)
+        imgky = self.correlacao(ky)
+        result = Image.new(self.width, self.height)
+        for x in range(self.width):
+            for y in range(self.height):
+                colornew = round(math.sqrt(imgkx.get_pixel(x, y)**2 + imgky.get_pixel(x, y)**2))
+                result.set_pixel(x, y, colornew)
+        result.acertar()
+        return result
 
     def darken(self):
         result = self.apply_per_pixel(lambda c: c * 0.5)
@@ -211,6 +231,9 @@ class Image:
         # when the window is closed, the program should stop
         toplevel.protocol('WM_DELETE_WINDOW', tk_root.destroy)
 
+def blur_kernel_generator(n):
+    blur_kernel = [[1/n**2 for i in range(n)] for i in range(n)]
+    return blur_kernel
 
 try:
     tk_root = tkinter.Tk()
@@ -229,41 +252,63 @@ if __name__ == '__main__':
     # and not when the tests are being run.  this is a good place for
     # generating images, etc.
     pass
-    bordas = [[-1, -1, -1],
-              [-1, 8, -1],
-              [-1, -1, -1]]
-    borda2 = [[2, 1, 0],
-              [1, 0,-1],
-              [0,-1,-2]]
-    Kx = [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1],]
-    Ky = [[-1, -2, -1],[0, 0, 0],[1, 2, 1],]
-    Kxy = [[-2, -2, 0],[-2, 0, 2],[0, 2, 2],]
-    borrar = [[1/9,1/9,1/9],[1/9,1/9,1/9],[1/9,1/9,1/9]]
 
-    i = Image.load('test_images/cherry.png')
-    b = i.correlacao(borrar)
-    bb = b.correlacao(borrar)
-    ikx = bb.correlacao(Kx)
-    iky = bb.correlacao(Ky)
-    ikxy = ikx.correlacao(Ky)
-    ikyx = iky.correlacao(Kx)
-    ikx.show()
-    iky.show()
-    ikxy.show()
-    ikyx.show()
+    # Q2
+    #i = Image.load('test_images/bluegill.png')
+    #inv = i.inverted()
+    #inv.save('test_results/peixe.png')
 
-    # correla = i.correlacao(bordas)
-    # i.show()
-    # correla.show()
-
-    # Kernel para resolver a questão 4
-    # kernelq4 = [[0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [1,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0]]
+    # Q4
+    # kernelq4 = [[0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [1, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [0, 0, 0, 0, 0, 0, 0, 0, 0]]
     # i = Image.load('test_images/pigbird.png')
     # ic = i.correlacao(kernelq4)
     # ic.show()
+    
+    # foto borrada
+    # borrada = i.blurred(5)
+    # borrada.show()
+    # borrada.save('test_results/catblurr.png')
+
+    # foto sharpen
+    # i = Image.load('test_images/python.png')
+    # nitida = i.sharpened(11)
+    # nitida.show()
+    # nitida.save('test_results/pythonsharpened.png')
+
+    # foto edges
+    # i = Image.load('test_images/construct.png')
+    # borda = i.edges()
+    # borda.show()
+    # borda.save('test_results/constructedges.png')
+    
+    # Questão 5
+    # kernel1 = [[0, 0, 0], [0, 2, 0], [0, 0, 0]]
+    # kernel2 = [[1/9, 1/9, 1/9], [1/9, 1/9, 1/9], [1/9, 1/9, 1/9]]
+    # kernel = [[-1/9, -1/9, -1/9],
+    #           [-1/9, 17/9, -1/9],
+    #           [-1/9, -1/9, -1/9]]
+    # i = Image.load('test_images/python.png')
+    # sharp = i.correlacao(kernel)
+    # sharp.show()
     # i.show()
-    
-    
+
+    # Questão 6
+    # kx = [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]]
+    # ky = [[-1, -2, -1],[0, 0, 0],[1, 2, 1]]
+    # i = Image.load('test_images/chess.png')
+    # ikx = i.correlacao(kx)
+    # iky = i.correlacao(ky)
+    # ikx.show()
+    # iky.show()
+    # O Kx retorna a detectação de bordas horizontal e o Ky retorna a detecção de bordas vertical
 
 
     # iv.save('test_results/peixe_invertido.png') salva a imagem peixe invertida
